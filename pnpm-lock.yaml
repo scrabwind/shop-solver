@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@types/pathfinding@0.0.9':
+    hash: zg6jwpnfla5ewrddfqgo55nafi
+    path: patches/@types__pathfinding@0.0.9.patch
+
 dependencies:
   '@nuxt/ui':
     specifier: ^2.13.0
@@ -19,7 +24,7 @@ dependencies:
     version: 3.5.29
   '@types/pathfinding':
     specifier: ^0.0.9
-    version: 0.0.9
+    version: 0.0.9(patch_hash=zg6jwpnfla5ewrddfqgo55nafi)
   '@types/ramda':
     specifier: ^0.29.10
     version: 0.29.10
@@ -2234,9 +2239,10 @@ packages:
     resolution: {integrity: sha512-6pLTOo0V3N5jZb5nTwjiv3lPHLK3Z/TjbhQUj8CTWXocUk1Z/f6OHTp3Pcwi1BhWnf5gqKUcyEb1gP0KIJuQgw==}
     dev: true
 
-  /@types/pathfinding@0.0.9:
+  /@types/pathfinding@0.0.9(patch_hash=zg6jwpnfla5ewrddfqgo55nafi):
     resolution: {integrity: sha512-b7tf4+gVc8+sRETzJ7pCeqhknQ9XVgYqbH5+ekcHmO5Hf/fy9BTBzSstE9mcOQc81Y0qITda8tF/UsN3huIMwg==}
     dev: false
+    patched: true
 
   /@types/ramda@0.29.10:
     resolution: {integrity: sha512-0BzWVKtSEtignlk+XBuK88Il5wzQwbRVfEkzE8iKm02NYHMGQ/9ffB05M+zXhTCqo50DOIAT9pNSJsjFMMG4rQ==}
