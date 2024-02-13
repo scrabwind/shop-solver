@@ -1,5 +1,5 @@
 <template>
-  <main class="h-screen overflow-hidden">
+  <main class="h-screen overflow-hidden text-white">
     <svg
       xmlns="http://www.w3.org/2000/svg"
       fill="white"
