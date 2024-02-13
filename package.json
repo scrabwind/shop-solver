@@ -10,7 +10,9 @@
     "postinstall": "nuxt prepare",
     "lint:eslint": "eslint --fix --ext .ts,.vue .",
     "lint:prettier": "prettier . --write --ignore-unknown",
-    "lint": "pnpm lint:eslint && pnpm lint:prettier"
+    "lint": "pnpm lint:eslint && pnpm lint:prettier",
+    "predeploy": "pnpm build --preset github_pages",
+    "deploy": "gh-pages -d .output/public"
   },
   "dependencies": {
     "@nuxt/ui": "^2.13.0",
