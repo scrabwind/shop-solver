@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@types/pathfinding@0.0.9':
+    hash: zg6jwpnfla5ewrddfqgo55nafi
+    path: patches/@types__pathfinding@0.0.9.patch
+
 dependencies:
   '@vueuse/core':
     specifier: ^10.7.2
@@ -42,7 +47,7 @@ devDependencies:
     version: 6.11.4
   '@types/pathfinding':
     specifier: ^0.0.9
-    version: 0.0.9
+    version: 0.0.9(patch_hash=zg6jwpnfla5ewrddfqgo55nafi)
   '@types/ramda':
     specifier: ^0.29.10
     version: 0.29.10
@@ -1977,9 +1982,10 @@ packages:
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
     dev: true
 
-  /@types/pathfinding@0.0.9:
+  /@types/pathfinding@0.0.9(patch_hash=zg6jwpnfla5ewrddfqgo55nafi):
     resolution: {integrity: sha512-b7tf4+gVc8+sRETzJ7pCeqhknQ9XVgYqbH5+ekcHmO5Hf/fy9BTBzSstE9mcOQc81Y0qITda8tF/UsN3huIMwg==}
     dev: true
+    patched: true
 
   /@types/ramda@0.29.10:
     resolution: {integrity: sha512-0BzWVKtSEtignlk+XBuK88Il5wzQwbRVfEkzE8iKm02NYHMGQ/9ffB05M+zXhTCqo50DOIAT9pNSJsjFMMG4rQ==}
