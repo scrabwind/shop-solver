@@ -5,9 +5,7 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
-    "build:gh": "nuxt build --preset github_pages",
     "generate": "nuxt generate",
-    "generate:gh": "nuxt generate --preset github_pages",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint:eslint": "eslint --fix --ext .ts,.vue .",
