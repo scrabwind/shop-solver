@@ -5,14 +5,14 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
+    "build:gh": "nuxt build --preset github_pages",
     "generate": "nuxt generate",
+    "generate:gh": "nuxt generate --preset github_pages",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint:eslint": "eslint --fix --ext .ts,.vue .",
     "lint:prettier": "prettier . --write --ignore-unknown",
-    "lint": "pnpm lint:eslint && pnpm lint:prettier",
-    "predeploy": "pnpm build --preset github_pages",
-    "deploy:page": "pnpm predeploy && gh-pages -d .output/public"
+    "lint": "pnpm lint:eslint && pnpm lint:prettier"
   },
   "dependencies": {
     "@vueuse/core": "^10.7.2",
