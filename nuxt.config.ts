@@ -3,7 +3,6 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: [
     "@vueuse/nuxt",
-    "@nuxt/ui",
     "@nuxtjs/tailwindcss",
     [
       "@nuxtjs/google-fonts",

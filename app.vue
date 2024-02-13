@@ -1,5 +1,3 @@
 <template>
-  <ClientOnly>
-    <NewGridComponent />
-  </ClientOnly>
+  <NewGridComponent />
 </template>
