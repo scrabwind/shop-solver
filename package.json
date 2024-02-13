@@ -12,7 +12,7 @@
     "lint:prettier": "prettier . --write --ignore-unknown",
     "lint": "pnpm lint:eslint && pnpm lint:prettier",
     "predeploy": "pnpm build --preset github_pages",
-    "deploy:page": "gh-pages -d .output/public"
+    "deploy:page": "pnpm predeploy && gh-pages -d .output/public"
   },
   "dependencies": {
     "@nuxt/ui": "^2.13.0",
