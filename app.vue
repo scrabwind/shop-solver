@@ -1,3 +1,5 @@
 <template>
-  <NewGridComponent />
+  <div>
+    <NuxtPage />
+  </div>
 </template>
