@@ -1,6 +1,7 @@
 <template>
   <main class="h-screen overflow-hidden text-white">
     <svg
+      id="grid"
       xmlns="http://www.w3.org/2000/svg"
       fill="white"
       :width="gridSize[0] * nodeSize"
@@ -10,21 +11,25 @@
         v-for="(row, i) in grid?.nodes"
         :key="`row-${i}`"
       >
-        <rect
+        <g
           v-for="(node, j) in row"
-          :id="`rect-${j}-${i}`"
           :key="`rect-${j}-${i}`"
-          :width="nodeSize"
-          :height="nodeSize"
-          :x="node.x * nodeSize"
-          :y="node.y * nodeSize"
-          class="fill-white stroke-slate-950 stroke-1"
-          @mousedown="(e) => handleMouseDown(e, node)"
-          @mouseup="handleMouseUp"
-          @mouseover="(e) => handleMouseOver(e, node)"
-          @contextmenu.prevent=""
-        />
+        >
+          <rect
+            :id="`rect-${j}-${i}`"
+            :width="nodeSize"
+            :height="nodeSize"
+            :x="node.x * nodeSize"
+            :y="node.y * nodeSize"
+            class="fill-white stroke-slate-950 stroke-1"
+            @mousedown="(e) => handleMouseDown(e, node)"
+            @mouseup="handleMouseUp"
+            @mouseover="(e) => handleMouseOver(e, node)"
+            @contextmenu="(e) => removeWaypoint(e, node)"
+          />
+        </g>
       </g>
+      <g id="lines" />
     </svg>
     <button
       class="w-16 h-8 fixed left-0 top-0 bg-black"
@@ -34,24 +39,30 @@
     </button>
     <button
       class="w-16 h-8 fixed left-16 top-0 bg-black"
+      @click="resetGrid"
+    >
+      reset
+    </button>
+    <button
+      class="w-16 h-8 fixed left-32 top-0 bg-black"
       @click="solveGrid"
     >
       solve
     </button>
     <button
-      class="w-16 h-8 fixed left-32 top-0 bg-black"
+      class="w-16 h-8 fixed left-48 top-0 bg-black"
       @click="createWaypoint"
     >
-      Waypoint
+      waypoint
     </button>
-    <div class="w-128 h-16 fixed left-48 top-0 bg-black">
-      {{ waypoints }}
-    </div>
+    <span class="w-16 h-8 fixed left-0 bottom-0 bg-black text-center">{{
+      distanceTraveled
+    }}</span>
   </main>
 </template>
 
 <script setup lang="ts">
-  import PF, { type Node } from "pathfinding";
+  import PF, { DiagonalMovement, type Node } from "pathfinding";
 
   type MouseMode =
     | "drawWall"
@@ -67,10 +78,13 @@
   const startPos = ref([32 - 4, 16]);
   const endPos = ref([32 + 4, 16]);
 
+  const distanceTraveled = ref(0);
+
   const grid = ref(new PF.Grid(gridSize[0], gridSize[1]));
   const mouseMode = ref<MouseMode>("");
 
   const waypoints = ref<number[][]>([]);
+  const orderedWaypoints = ref<number[][]>([]);
 
   const clickedWaypointIndex = ref<number>(-1);
 
@@ -128,13 +142,6 @@
       grid.value?.setWalkableAt(node.x, node.y, true);
       rect.style.fill = "white";
     }
-
-    // if (mouseMode.value === "moveStart") {
-    //   rect.style.fill = "green";
-    // }
-    // if (mouseMode.value === "moveEnd") {
-    //   rect.style.fill = "red";
-    // }
   };
 
   const handleMouseDown = (e: MouseEvent, node: Node) => {
@@ -160,6 +167,10 @@
       clickedWaypointIndex.value = waypoints.value.findIndex(
         (waypoint) => node.x === waypoint[0] && node.y === waypoint[1]
       );
+      if (orderedWaypoints.value.toString() === [node.x, node.y].toString()) {
+        return;
+      }
+      orderedWaypoints.value = [...orderedWaypoints.value, [node.x, node.y]];
       return;
     }
 
@@ -207,6 +218,16 @@
     handleFill(node);
   };
 
+  const removeWaypoint = (event: MouseEvent, node: Node) => {
+    const results = waypoints.value.filter(
+      (waypoint) => waypoint[0] !== node.x && waypoint[1] !== node.y
+    );
+    if (waypoints.value.length === results.length) return;
+    waypoints.value = results;
+    orderedWaypoints.value = results;
+    event.preventDefault();
+  };
+
   const clearGrid = () => {
     mouseMode.value = "removeWall";
     grid.value.nodes.forEach((row) => {
@@ -215,82 +236,29 @@
       });
     });
 
-    const rects = document.getElementsByTagName("rect");
-
-    Array.from(rects).forEach((rect) => {
-      if (rect.style.fill !== "yellow") return;
-      // eslint-disable-next-line no-param-reassign
-      rect.style.fill = "white";
-    });
+    document.getElementById("lines")?.replaceChildren();
 
     initNodes();
 
     mouseMode.value = "";
   };
 
-  // const solveGrid = () => {
-  //   const rects = document.getElementsByTagName("rect");
-
-  //   Array.from(rects).forEach((rect) => {
-  //     if (rect.style.fill !== "yellow") return;
-  //     // eslint-disable-next-line no-param-reassign
-  //     rect.style.fill = "white";
-  //   });
-
-  //   const finder = new PF.AStarFinder();
-
-  //   const backupGrid = grid.value.clone();
-
-  //   const path = finder.findPath(
-  //     startPos.value[0],
-  //     startPos.value[1],
-  //     endPos.value[0],
-  //     endPos.value[1],
-  //     grid.value
-  //   );
-
-  //   path.forEach((nodePos) => {
-  //     const rect = document.getElementById(`rect-${nodePos[0]}-${nodePos[1]}`);
-  //     if (!rect) return;
-
-  //     if (nodePos[0] === startPos.value[0] && nodePos[1] === startPos.value[1])
-  //       return;
-
-  //     if (nodePos[0] === endPos.value[0] && nodePos[1] === endPos.value[1])
-  //       return;
-
-  //     const inWaypointCords = waypoints.value.map(
-  //       (waypoint) => nodePos[0] === waypoint[0] && nodePos[1] === waypoint[1]
-  //     );
-
-  //     if (inWaypointCords.includes(true)) return;
-
-  //     rect.style.fill = "yellow";
-  //   });
-
-  //   grid.value = backupGrid;
-  // };
-
   const solveGrid = () => {
-    const rects = document.getElementsByTagName("rect");
+    // const linesGroup = document.createElementNS(
+    //   "http://www.w3.org/2000/svg",
+    //   "g"
+    // );
 
-    Array.from(rects).forEach((rect) => {
-      if (rect.style.fill !== "yellow") return;
-      // eslint-disable-next-line no-param-reassign
-      rect.style.fill = "white";
+    // linesGroup.id = "lines";
+
+    // document.getElementById("grid")?.appendChild(linesGroup);
+
+    const finder = new PF.AStarFinder({
+      diagonalMovement: DiagonalMovement.Always
     });
-
-    const finder = new PF.AStarFinder();
 
     const backupGrid = grid.value.clone();
 
-    // const path = finder.findPath(
-    //   startPos.value[0],
-    //   startPos.value[1],
-    //   endPos.value[0],
-    //   endPos.value[1],
-    //   grid.value
-    // );
     let path: any[] = [];
 
     let start = startPos.value;
@@ -306,41 +274,18 @@
       let shortestPathIndex = -1;
       const newWaypoints = [...waypoints.value];
 
-      // if (i === 0) start = startPos.value;
-
-      // if (newWaypoints.length === 0) end = endPos.value;
-
       for (let j = 0; j < newWaypoints.length; j += 1) {
-        // console.log(`j: ${j}`);
-
         end = newWaypoints[j];
 
         const isBad = wasStart.map(
           (v) => v[0] === newWaypoints[j][0] && v[1] === newWaypoints[j][1]
         );
 
-        // console.log(wasStart);
-
         if (isBad.includes(true)) {
-          console.log(`i:${j}: inside was started`);
-          // console.log(end);
-          console.log(wasStart);
           if (j === newWaypoints.length - 1) {
-            console.log(`i:${j} inside last loop`);
-            // console.log(shortestPath);
-
-            // console.log(`start: ${start}`);
-            // console.log(`end: ${end}`);
-
             start = newWaypoints[shortestPathIndex];
 
             wasStart.push(start);
-            // newWaypoints = newWaypoints.filter(
-            //   (_, idx) => idx === shortestPathIndex
-            // );
-
-            // console.log(shortestPath);
-
             path.push(shortestPath);
           }
           // eslint-disable-next-line no-continue
@@ -355,26 +300,13 @@
           grid.value.clone()
         );
         if (shortestPath.length === 0 || newPath.length < shortestPath.length) {
-          console.log(`i:${j} inside shortest path`);
           shortestPath = newPath;
           shortestPathIndex = j;
         }
         if (j === newWaypoints.length - 1) {
-          console.log(`i:${j} inside last loop`);
-          // console.log(shortestPath);
-
-          // console.log(`start: ${start}`);
-          // console.log(`end: ${end}`);
-
           start = newWaypoints[shortestPathIndex];
 
           wasStart.push(start);
-          // newWaypoints = newWaypoints.filter(
-          //   (_, idx) => idx === shortestPathIndex
-          // );
-
-          // console.log(shortestPath);
-
           path.push(shortestPath);
         }
       }
@@ -388,43 +320,86 @@
       end[1],
       grid.value.clone()
     );
-    path.push(finalPath);
 
-    path.forEach((p) =>
-      p.forEach((asd: any, i: any) => {
-        if (i === 0) {
-          console.log(`start: ${asd}`);
-        }
-        if (i === p.length - 1) {
-          console.log(`end: ${asd}`);
-        }
-      })
-    );
+    path.push(finalPath);
 
     path = path.flat();
 
-    // console.log(path);
-
-    path.forEach((nodePos) => {
+    const lines = path.map<SVGLineElement | string>((nodePos, idx, array) => {
       const rect = document.getElementById(`rect-${nodePos[0]}-${nodePos[1]}`);
-      if (!rect) return;
+      if (!rect) return "";
 
-      if (nodePos[0] === startPos.value[0] && nodePos[1] === startPos.value[1])
-        return;
+      // if (nodePos[0] === startPos.value[0] && nodePos[1] === startPos.value[1])
+      //   return;
 
-      if (nodePos[0] === endPos.value[0] && nodePos[1] === endPos.value[1])
-        return;
+      // if (nodePos[0] === endPos.value[0] && nodePos[1] === endPos.value[1])
+      //   return;
 
-      const inWaypointCords = waypoints.value.map(
-        (waypoint) => nodePos[0] === waypoint[0] && nodePos[1] === waypoint[1]
+      // const inWaypointCords = waypoints.value.map(
+      //   (waypoint) => nodePos[0] === waypoint[0] && nodePos[1] === waypoint[1]
+      // );
+
+      // if (inWaypointCords.includes(true)) return;
+
+      if (idx + 1 === array.length) return "";
+
+      const {
+        left: rectLeft,
+        top: rectTop,
+        width: rectWidth,
+        height: rectHeight
+      } = rect.getBoundingClientRect();
+
+      const rect2 = document.getElementById(
+        `rect-${array[idx + 1][0]}-${array[idx + 1][1]}`
       );
 
-      if (inWaypointCords.includes(true)) return;
+      if (!rect2) return "";
 
-      rect.style.fill = "yellow";
+      const {
+        left: rect2Left,
+        top: rect2Top,
+        width: rect2Width,
+        height: rect2Height
+      } = rect2.getBoundingClientRect();
+
+      const line = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "line"
+      );
+
+      line.setAttribute("x1", `${rectLeft + rectWidth / 2}`);
+      line.setAttribute("x2", `${rect2Left + rect2Width / 2}`);
+      line.setAttribute("y1", `${rectTop + rectHeight / 2}`);
+      line.setAttribute("y2", `${rect2Top + rect2Height / 2}`);
+
+      line.style.stroke = "black";
+      line.style.strokeWidth = "3";
+      line.style.shapeRendering = "crispEdges";
+      line.style.pointerEvents = "none";
+      // line.style.strokeDasharray = "5";
+
+      return line;
     });
 
+    distanceTraveled.value = lines.length;
+
+    const lineContainer = document.getElementById("lines");
+
+    lineContainer?.replaceChildren(...lines);
+
     grid.value = backupGrid;
+  };
+
+  const resetGrid = () => {
+    clearGrid();
+
+    startPos.value = [32 - 4, 16];
+    endPos.value = [32 + 4, 16];
+
+    waypoints.value = [];
+
+    grid.value = new PF.Grid(gridSize[0], gridSize[1]);
   };
 
   const createWaypoint = () => {
@@ -440,11 +415,8 @@
   watch(startPos, (newPos, _oldPos) => {
     if (!grid.value.getNodeAt(newPos[0], newPos[1]).walkable) return;
     // if (!grid.value.getNodeAt(oldPos[0], oldPos[1]).walkable) return;
-    if (
-      newPos.toString() === endPos.value.toString()
-      // oldPos.toString() === endPos.value.toString()
-    )
-      return;
+    if (newPos.toString() === endPos.value.toString()) return;
+    // oldPos.toString() === endPos.value.toString()
     // const oldRect = document.getElementById(`rect-${oldPos[0]}-${oldPos[1]}`);
     const newRect = document.getElementById(`rect-${newPos[0]}-${newPos[1]}`);
     if (!newRect) return;
@@ -499,6 +471,15 @@
       // ) {
       //   return;
       // }
+      if (newArray.length === 0) {
+        const rects = document.getElementsByTagName("rect");
+        Array.from(rects).forEach((rect) => {
+          if (rect.style.fill !== "blue") return;
+          // eslint-disable-next-line no-param-reassign
+          rect.style.fill = "white";
+        });
+      }
+
       if (newArray.length > oldArray.length) {
         const result = compareArrays(newArray, oldArray);
         const [x, y] = result[0];
@@ -544,20 +525,6 @@
     },
     { deep: true }
   );
-
-  // watchEffect(() => {
-  //   if (
-  //     grid.value.getNodeAt(mouseGridPos.value[0], mouseGridPos.value[1])
-  //       .walkable
-  //   ) {
-  //     return;
-  //   }
-  //   const oldRect = document.getElementById(`rect-${oldPos[0]}-${oldPos[1]}`);
-  //   const newRect = document.getElementById(`rect-${newPos[0]}-${newPos[1]}`);
-  //   if (!oldRect || !newRect) return;
-  //   oldRect.style.fill = "white";
-  //   newRect.style.fill = "red";
-  // });
 
   onMounted(() => {
     initNodes();
