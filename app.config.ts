@@ -1,7 +1,7 @@
 export default defineAppConfig({
   nodeSize: 30,
   gridSize: {
-    x: 64,
-    y: 32
+    cols: 64,
+    rows: 32
   }
 });

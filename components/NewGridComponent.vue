@@ -2,13 +2,14 @@
   <main class="h-screen overflow-hidden text-white">
     <svg
       id="grid"
+      ref="gridRef"
       xmlns="http://www.w3.org/2000/svg"
       fill="white"
-      :width="gridSize[0] * nodeSize"
-      :height="gridSize[1] * nodeSize"
+      :width="gridSize.cols * nodeSize"
+      :height="gridSize.rows * nodeSize"
     >
       <g
-        v-for="(row, i) in grid?.nodes"
+        v-for="(row, i) in grid"
         :key="`row-${i}`"
       >
         <g
@@ -58,11 +59,18 @@
     <span class="w-16 h-8 fixed left-0 bottom-0 bg-black text-center">{{
       distanceTraveled
     }}</span>
+    <span class="w-16 h-8 fixed left-16 bottom-0 bg-black text-center">{{
+      `${startPosition.x}, ${endPosition.y}`
+    }}</span>
+    <span class="w-16 h-8 fixed left-32 bottom-0 bg-black text-center">{{
+      `${endPosition.x}, ${endPosition.y}`
+    }}</span>
   </main>
 </template>
 
 <script setup lang="ts">
-  import PF, { DiagonalMovement, type Node } from "pathfinding";
+  import PF, { DiagonalMovement } from "pathfinding";
+  import type { GridCell } from "@/types/gridPosition";
 
   type MouseMode =
     | "drawWall"
@@ -72,28 +80,41 @@
     | "moveWaypoint"
     | "";
 
-  const nodeSize = 30;
-  const gridSize = [64, 32];
+  const { gridSize, nodeSize } = useAppConfig();
 
-  const startPos = ref([32 - 4, 16]);
-  const endPos = ref([32 + 4, 16]);
+  // const startPos = ref<GridCell>({
+  //   x: gridSize.cols / 2 - 4,
+  //   y: gridSize.rows / 2,
+  //   type: "start"
+  // });
+
+  // const endPosition = ref<GridCell>({
+  //   x: gridSize.cols / 2 + 4,
+  //   y: gridSize.rows / 2,
+  //   type: "end"
+  // });
 
   const distanceTraveled = ref(0);
 
-  const grid = ref(new PF.Grid(gridSize[0], gridSize[1]));
+  // const grid = ref(new PF.Grid(gridSize.cols, gridSize.rows));
+
   const mouseMode = ref<MouseMode>("");
+
+  const gridRef = ref<SVGElement | null>(null);
 
   const waypoints = ref<number[][]>([]);
   const orderedWaypoints = ref<number[][]>([]);
 
   const clickedWaypointIndex = ref<number>(-1);
 
+  const { grid, startPosition, endPosition } = useGrid();
+
   const { x: mouseX, y: mouseY } = useMouse();
 
-  const mouseGridPos = computed(() => [
-    Math.floor(mouseX.value / 30),
-    Math.floor(mouseY.value / 30)
-  ]);
+  const mouseGridPos = computed(() => ({
+    x: Math.floor(mouseX.value / 30),
+    y: Math.floor(mouseY.value / 30)
+  }));
 
   const compareArrays = (arr1: number[][], arr2: number[][]) => {
     const flattenArr1 = arr1.map((coord) => coord.join(","));
@@ -106,10 +127,10 @@
 
   const initNodes = () => {
     const startRect = document.getElementById(
-      `rect-${startPos.value[0]}-${startPos.value[1]}`
+      `rect-${startPosition.value.x}-${startPosition.value.y}`
     );
     const endRect = document.getElementById(
-      `rect-${endPos.value[0]}-${endPos.value[1]}`
+      `rect-${endPosition.value.x}-${endPosition.value.y}`
     );
 
     if (!startRect || !endRect) return;
@@ -118,63 +139,78 @@
     endRect.style.fill = "red";
   };
 
-  const handleFill = (node: Node) => {
-    const rect = document.getElementById(`rect-${node.x}-${node.y}`);
-    if (!rect) return;
-    if (node.x === startPos.value[0] && node.y === startPos.value[1]) return;
+  const handleFill = (node: GridCell) => {
+    const { x, y, type } = node;
 
-    if (node.x === endPos.value[0] && node.y === endPos.value[1]) return;
+    const rect = document.getElementById(`rect-${x}-${y}`);
+    if (!rect) return;
+    if (x === startPosition.value.x && y === startPosition.value.y) return;
+
+    if (x === endPosition.value.x && y === endPosition.value.y) return;
 
     const inWaypointCords = waypoints.value.map(
-      (waypoint) => node.x === waypoint[0] && node.y === waypoint[1]
+      (waypoint) => x === waypoint[0] && y === waypoint[1]
     );
 
     if (inWaypointCords.includes(true)) return;
 
     if (mouseMode.value === "drawWall") {
-      if (!node.walkable) return;
-      grid.value?.setWalkableAt(node.x, node.y, false);
+      if (type !== "floor") return;
+
+      grid.value[y][x].type = "wall";
       rect.style.fill = "grey";
-      return;
     }
     if (mouseMode.value === "removeWall") {
-      if (node.walkable) return;
-      grid.value?.setWalkableAt(node.x, node.y, true);
+      if (node.type !== "wall") return;
+
+      grid.value[node.x][node.y].type = "floor";
       rect.style.fill = "white";
     }
   };
 
-  const handleMouseDown = (e: MouseEvent, node: Node) => {
+  const handleMouseDown = (e: MouseEvent, node: GridCell) => {
+    // if (!node) {
+    //   console.log("xd");
+
+    //   console.log(node);
+    //   return;
+    // }
+    // if (typeof node !== "object" || typeof node === "undefined") {
+    //   console.log("xd2");
+
+    //   console.log(node);
+    //   return;
+    // }
     if (e.button === 2) return;
 
-    const { x, y, walkable } = node;
+    const { x, y, type } = node;
 
-    if (x === startPos.value[0] && y === startPos.value[1]) {
+    if (x === startPosition.value.x && y === startPosition.value.y) {
       mouseMode.value = "moveStart";
       return;
     }
-    if (x === endPos.value[0] && y === endPos.value[1]) {
+    if (x === endPosition.value.x && y === endPosition.value.y) {
       mouseMode.value = "moveEnd";
       return;
     }
 
     const isWaypointCords = waypoints.value.map(
-      (waypoint) => node.x === waypoint[0] && node.y === waypoint[1]
+      (waypoint) => x === waypoint[0] && y === waypoint[1]
     );
 
     if (isWaypointCords.includes(true)) {
       mouseMode.value = "moveWaypoint";
       clickedWaypointIndex.value = waypoints.value.findIndex(
-        (waypoint) => node.x === waypoint[0] && node.y === waypoint[1]
+        (waypoint) => x === waypoint[0] && y === waypoint[1]
       );
-      if (orderedWaypoints.value.toString() === [node.x, node.y].toString()) {
+      if (orderedWaypoints.value.toString() === [x, y].toString()) {
         return;
       }
-      orderedWaypoints.value = [...orderedWaypoints.value, [node.x, node.y]];
+      orderedWaypoints.value = [...orderedWaypoints.value, [x, y]];
       return;
     }
 
-    mouseMode.value = walkable ? "drawWall" : "removeWall";
+    mouseMode.value = type === "floor" ? "drawWall" : "removeWall";
 
     handleFill(node);
   };
@@ -184,41 +220,42 @@
     clickedWaypointIndex.value = -1;
   };
 
-  const handleMouseOver = (event: MouseEvent, node: Node) => {
+  const handleMouseOver = (event: MouseEvent, node: GridCell) => {
     if (event.buttons !== 1) {
       return;
     }
 
     if (mouseMode.value === "moveStart") {
       if (
-        !grid.value.getNodeAt(mouseGridPos.value[0], mouseGridPos.value[1])
-          .walkable
+        grid.value[mouseGridPos.value.y][mouseGridPos.value.x].type === "wall"
       ) {
         return;
       }
-      startPos.value = mouseGridPos.value;
+      startPosition.value = { ...mouseGridPos.value, ...startPosition.value };
       return;
     }
 
     if (mouseMode.value === "moveEnd") {
       if (
-        !grid.value.getNodeAt(mouseGridPos.value[0], mouseGridPos.value[1])
-          .walkable
+        grid.value[mouseGridPos.value.y][mouseGridPos.value.x].type === "wall"
       ) {
         return;
       }
-      endPos.value = mouseGridPos.value;
+      endPosition.value = { ...mouseGridPos.value, ...endPosition.value };
       return;
     }
 
     if (mouseMode.value === "moveWaypoint") {
-      waypoints.value[clickedWaypointIndex.value] = mouseGridPos.value;
+      waypoints.value[clickedWaypointIndex.value] = [
+        mouseGridPos.value.x,
+        mouseGridPos.value.y
+      ];
     }
 
     handleFill(node);
   };
 
-  const removeWaypoint = (event: MouseEvent, node: Node) => {
+  const removeWaypoint = (event: MouseEvent, node: GridCell) => {
     const results = waypoints.value.filter(
       (waypoint) => waypoint[0] !== node.x && waypoint[1] !== node.y
     );
@@ -230,7 +267,7 @@
 
   const clearGrid = () => {
     mouseMode.value = "removeWall";
-    grid.value.nodes.forEach((row) => {
+    grid.value.forEach((row) => {
       row.forEach((node) => {
         handleFill(node);
       });
@@ -257,11 +294,11 @@
       diagonalMovement: DiagonalMovement.Always
     });
 
-    const backupGrid = grid.value.clone();
+    // const backupGrid = grid.value
 
     let path: any[] = [];
 
-    let start = startPos.value;
+    let start = startPosition.value;
     let end: any[] = [];
 
     const newNewWaypoints = [...waypoints.value];
@@ -283,7 +320,10 @@
 
         if (isBad.includes(true)) {
           if (j === newWaypoints.length - 1) {
-            start = newWaypoints[shortestPathIndex];
+            start = Object.assign(start, {
+              x: newWaypoints[shortestPathIndex][0],
+              y: newWaypoints[shortestPathIndex][1]
+            });
 
             wasStart.push(start);
             path.push(shortestPath);
@@ -293,32 +333,35 @@
         }
 
         const newPath = finder.findPath(
-          start[0],
-          start[1],
+          start.x,
+          start.y,
           end[0],
           end[1],
-          grid.value.clone()
+          convertToLibGrid(grid.value)
         );
         if (shortestPath.length === 0 || newPath.length < shortestPath.length) {
           shortestPath = newPath;
           shortestPathIndex = j;
         }
         if (j === newWaypoints.length - 1) {
-          start = newWaypoints[shortestPathIndex];
+          start = Object.assign(start, {
+            x: newWaypoints[shortestPathIndex][0],
+            y: newWaypoints[shortestPathIndex][1]
+          });
 
           wasStart.push(start);
           path.push(shortestPath);
         }
       }
     }
-    end = endPos.value;
+    end = [endPosition.value.x, endPosition.value.y];
 
     const finalPath = finder.findPath(
-      start[0],
-      start[1],
+      start.x,
+      start.y,
       end[0],
       end[1],
-      grid.value.clone()
+      convertToLibGrid(grid.value)
     );
 
     path.push(finalPath);
@@ -329,10 +372,10 @@
       const rect = document.getElementById(`rect-${nodePos[0]}-${nodePos[1]}`);
       if (!rect) return "";
 
-      // if (nodePos[0] === startPos.value[0] && nodePos[1] === startPos.value[1])
+      // if (nodePos[0] === startPosition.value[0] && nodePos[1] === startPosition.value[1])
       //   return;
 
-      // if (nodePos[0] === endPos.value[0] && nodePos[1] === endPos.value[1])
+      // if (nodePos[0] === endPosition.value[0] && nodePos[1] === endPosition.value[1])
       //   return;
 
       // const inWaypointCords = waypoints.value.map(
@@ -387,19 +430,20 @@
     const lineContainer = document.getElementById("lines");
 
     lineContainer?.replaceChildren(...lines);
-
-    grid.value = backupGrid;
   };
 
   const resetGrid = () => {
     clearGrid();
 
-    startPos.value = [32 - 4, 16];
-    endPos.value = [32 + 4, 16];
+    startPosition.value = Object.assign(startPosition.value, {
+      x: 32 - 4,
+      y: 16
+    });
+    endPosition.value = Object.assign(endPosition.value, { x: 32 + 4, y: 16 });
 
     waypoints.value = [];
 
-    grid.value = new PF.Grid(gridSize[0], gridSize[1]);
+    grid.value = initGrid();
   };
 
   const createWaypoint = () => {
@@ -412,13 +456,13 @@
     waypoints.value = [...waypoints.value, [32, 16]];
   };
 
-  watch(startPos, (newPos, _oldPos) => {
-    if (!grid.value.getNodeAt(newPos[0], newPos[1]).walkable) return;
+  watch(startPosition, (newPos, _oldPos) => {
+    if (grid.value[newPos.y][newPos.x].type === "wall") return;
     // if (!grid.value.getNodeAt(oldPos[0], oldPos[1]).walkable) return;
-    if (newPos.toString() === endPos.value.toString()) return;
-    // oldPos.toString() === endPos.value.toString()
+    if (newPos.toString() === endPosition.value.toString()) return;
+    // oldPos.toString() === endPosition.value.toString()
     // const oldRect = document.getElementById(`rect-${oldPos[0]}-${oldPos[1]}`);
-    const newRect = document.getElementById(`rect-${newPos[0]}-${newPos[1]}`);
+    const newRect = document.getElementById(`rect-${newPos.x}-${newPos.y}`);
     if (!newRect) return;
 
     // oldRect.style.fill = "white";
@@ -433,17 +477,17 @@
     newRect.style.fill = "green";
   });
 
-  watch(endPos, (newPos, _oldPos) => {
-    if (!grid.value.getNodeAt(newPos[0], newPos[1]).walkable) return;
+  watch(endPosition, (newPos, _oldPos) => {
+    if (grid.value[newPos.y][newPos.x].type === "wall") return;
     // if (!grid.value.getNodeAt(oldPos[0], oldPos[1]).walkable) return;
     if (
-      newPos.toString() === startPos.value.toString()
-      // oldPos.toString() === startPos.value.toString()
+      newPos.toString() === startPosition.value.toString()
+      // oldPos.toString() === startPosition.value.toString()
     ) {
       return;
     }
     // const oldRect = document.getElementById(`rect-${oldPos[0]}-${oldPos[1]}`);
-    const newRect = document.getElementById(`rect-${newPos[0]}-${newPos[1]}`);
+    const newRect = document.getElementById(`rect-${newPos.x}-${newPos.y}`);
     if (!newRect) return;
 
     // oldRect.style.fill = "white";
@@ -466,8 +510,8 @@
       // const xd = newArray.map((v) => v.toString());
       // if (
       //   xd.includes(waypointStartingPosition) ||
-      //   xd.includes(startPos.value.toString()) ||
-      //   endPos.value.toString()
+      //   xd.includes(startPosition.value.toString()) ||
+      //   endPosition.value.toString()
       // ) {
       //   return;
       // }

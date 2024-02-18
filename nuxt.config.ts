@@ -28,4 +28,7 @@ export default defineNuxtConfig({
   appConfig: {
     nuxtIcon: {}
   }
+  // experimental: {
+  //   renderJsonPayloads: false
+  // }
 });

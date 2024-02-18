@@ -1,3 +1,3 @@
-import type { GridPosition } from "@/types/gridPosition";
+import type { GridCell } from "@/types/gridPosition";
 
-export default () => useState<GridPosition[]>("waypoints", () => []);
+export default () => useState<GridCell[]>("waypoints", () => []);
